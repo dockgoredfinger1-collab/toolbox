@@ -296,42 +296,43 @@ local InsertService = game:GetService("InsertService")
 local function insertAsset(assetId)
     assetId = tonumber(assetId)
     if not assetId or assetId <= 0 then
-        showToast("❌ Invalid Asset ID", Color3.fromRGB(200,60,60))
+        showToast("❌ Asset ID tidak valid", Color3.fromRGB(200, 60, 60))
         return
     end
 
-    showToast("🔄 Sedang menginsert ID: " .. assetId, Color3.fromRGB(255,180,0))
+    showToast("🔄 Mencoba insert ID: " .. assetId, Color3.fromRGB(255, 180, 0))
 
-    local success, result = pcall(function()
-        local loaded = InsertService:LoadAsset(assetId)
-        if not loaded then
-            error("LoadAsset returned nil")
-        end
-        
-        -- Ambil semua children dan parent ke workspace
-        local insertedCount = 0
-        for _, obj in ipairs(loaded:GetChildren()) do
-            obj.Parent = workspace
-            insertedCount = insertedCount + 1
-        end
-        
-        loaded:Destroy()
-        
-        if insertedCount > 0 then
-            showToast("✅ Berhasil insert " .. insertedCount .. " object(s)! ID: " .. assetId, Color3.fromRGB(40,200,100))
-        else
-            showToast("⚠️ Asset loaded tapi kosong", Color3.fromRGB(255,180,0))
-        end
+    local success, loadedModel = pcall(function()
+        return InsertService:LoadAsset(assetId)
     end)
 
     if not success then
-        print("Insert Error for ID " .. assetId .. ":", result)
-        showToast("❌ Gagal Insert\n" .. tostring(result):sub(1, 100), Color3.fromRGB(200,60,60))
-        
-        -- Toast tambahan dengan saran
-        task.delay(1.5, function()
-            showToast("Tips: Copy ID lalu drag manual dari Toolbox di Studio", Color3.fromRGB(100,180,255))
+        print("LoadAsset Error:", loadedModel)
+        showToast("❌ LoadAsset gagal\n" .. tostring(loadedModel):sub(1,120), Color3.fromRGB(200,60,60))
+        task.delay(2, function()
+            showToast("Tips: Model harus ada di inventory kamu atau milik Roblox", Color3.fromRGB(100,180,255))
         end)
+        return
+    end
+
+    if not loadedModel then
+        showToast("❌ LoadAsset mengembalikan nil (tidak diizinkan)", Color3.fromRGB(200,60,60))
+        return
+    end
+
+    -- Insert semua children ke Workspace
+    local count = 0
+    for _, obj in ipairs(loadedModel:GetChildren()) do
+        obj.Parent = workspace
+        count = count + 1
+    end
+
+    loadedModel:Destroy()
+
+    if count > 0 then
+        showToast("✅ Berhasil insert " .. count .. " object(s)!\nID: " .. assetId, Color3.fromRGB(40,200,100))
+    else
+        showToast("⚠️ Asset loaded tapi kosong", Color3.fromRGB(255,180,0))
     end
 end
 
