@@ -344,7 +344,8 @@ local function loadItems(keyword)
         
         -- Coba 2 endpoint (roproxy v1 dan v2)
         local urls = {
-           "https://catalog.roproxy.com/v1/search/items/details?Category=" .. category .. "&Limit=30&SortType=0&Keyword=" .. keywordEncoded,
+           --"https://catalog.roproxy.com/v1/search/items/details?Category=" .. category .. "&Limit=30&SortType=0&Keyword=" .. keywordEncoded,
+        "https://apis.roblox.com/toolbox-service/v1/search?assetTypes=Model&limit=10&Keyword=" .. keywordEncoded,
         --"https://catalog.roproxy.com/v2/search/items/details?categoryFilter=CommunityCreations&limit=30&keyword=" .. keywordEncoded
         }
         
