@@ -262,6 +262,7 @@ local function loadItems(keyword)
     task.spawn(function()
         local catMap = {Models="10",Decals="13",Audio="3",Plugins="38"}
         local url = "https://catalog.roblox.com/v1/search/items/details?Category="..(catMap[activeTab] or "10").."&SortType=0&Limit=30&Keyword="..(keyword or "")
+print(url)
         local ok, res = pcall(game.HttpGet, game, url)
         if ok then
             local pok, dec = pcall(HttpService.JSONDecode, HttpService, res)
