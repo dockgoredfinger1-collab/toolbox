@@ -289,36 +289,53 @@ end)
         end
     end)
 end
+-- insert asset 
 
 local InsertService = game:GetService("InsertService")
 
 local function insertAsset(assetId)
-    if assetId == 0 or assetId == nil then
+    assetId = tonumber(assetId)
+    if not assetId or assetId <= 0 then
         showToast("❌ Invalid Asset ID", Color3.fromRGB(200,60,60))
         return
     end
-    
+
+    showToast("🔄 Sedang menginsert ID: " .. assetId, Color3.fromRGB(255,180,0))
+
     local success, result = pcall(function()
-        local model = InsertService:LoadAsset(assetId)
-        if model then
-            model.Parent = workspace
-            -- Pindahkan children ke Workspace supaya tidak nested terlalu dalam
-            for _, v in ipairs(model:GetChildren()) do
-                v.Parent = workspace
-            end
-            model:Destroy()
-            showToast("✅ Inserted to Workspace! ID: " .. assetId, Color3.fromRGB(40,200,100))
+        local loaded = InsertService:LoadAsset(assetId)
+        if not loaded then
+            error("LoadAsset returned nil")
+        end
+        
+        -- Ambil semua children dan parent ke workspace
+        local insertedCount = 0
+        for _, obj in ipairs(loaded:GetChildren()) do
+            obj.Parent = workspace
+            insertedCount = insertedCount + 1
+        end
+        
+        loaded:Destroy()
+        
+        if insertedCount > 0 then
+            showToast("✅ Berhasil insert " .. insertedCount .. " object(s)! ID: " .. assetId, Color3.fromRGB(40,200,100))
+        else
+            showToast("⚠️ Asset loaded tapi kosong", Color3.fromRGB(255,180,0))
         end
     end)
-    
+
     if not success then
-        showToast("❌ Gagal Insert: " .. tostring(result), Color3.fromRGB(200,60,60))
-        print("Insert Error:", result)
-        -- Saran alternatif
-        showToast("Tips: Copy ID lalu paste manual di Studio Command Bar", Color3.fromRGB(255,180,0))
+        print("Insert Error for ID " .. assetId .. ":", result)
+        showToast("❌ Gagal Insert\n" .. tostring(result):sub(1, 100), Color3.fromRGB(200,60,60))
+        
+        -- Toast tambahan dengan saran
+        task.delay(1.5, function()
+            showToast("Tips: Copy ID lalu drag manual dari Toolbox di Studio", Color3.fromRGB(100,180,255))
+        end)
     end
 end
 
+-- load asset
 local function loadItems(keyword)
     clearItems()
     StatusLabel.Text = "🔄 Searching: " .. (keyword ~= "" and keyword or "top items") .. "..."
