@@ -262,27 +262,29 @@ local function loadItems(keyword)
     
     task.spawn(function()
         local catMap = {
-            Models = "10",   -- Model
-            Decals = "13",   -- Decal
-            Audio = "3",     -- Audio
-            Plugins = "38"   -- Plugin
+            Models = "10",
+            Decals = "13",
+            Audio = "3",
+            Plugins = "38"
         }
         
         local category = catMap[activeTab] or "10"
         local keywordEncoded = HttpService:UrlEncode(keyword or "")
         
-        -- API baru yang lebih stabil (Creator Store / Library)
-        local url = "https://catalog.roblox.com/v1/search/items/details"
-            .. "?Category=" .. category
-            .. "&Limit=30"
-            .. "&SortType=0"           -- Relevance
-            .. "&Keyword=" .. keywordEncoded
+        -- Gunakan v1 dulu (lebih kompatibel untuk search keyword)
+        local baseUrl = "https://catalog.roblox.com/v1/search/items/details"
+        local url = baseUrl .. "?Category=" .. category 
+                    .. "&Limit=30" 
+                    .. "&SortType=0"
+                    .. "&Keyword=" .. keywordEncoded
         
-        -- Kalau mau pakai proxy (lebih stabil di executor):
+        -- Kalau sering error HTTP, coba pakai roproxy (uncomment salah satu)
         -- local url = "https://catalog.roproxy.com/v1/search/items/details?Category=" .. category .. "&Limit=30&SortType=0&Keyword=" .. keywordEncoded
         
+        print("Fetching URL: " .. url)  -- ini buat debug
+        
         local ok, res = pcall(function()
-            return game:HttpGet(url)
+            return game:HttpGet(url, true)  -- true = no cache
         end)
         
         if ok then
@@ -290,7 +292,6 @@ local function loadItems(keyword)
             if pok and dec and dec.data then
                 local items = dec.data
                 for i, item in ipairs(items) do
-                    -- Sesuaikan field name (API v1 biasanya pakai .Id bukan .AssetId)
                     item.AssetId = item.id or item.Id or 0
                     item.Name = item.name or item.Name or "Unknown"
                     createCard(item, i)
@@ -299,12 +300,14 @@ local function loadItems(keyword)
                 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, math.ceil(#items / 3) * 156 + 16)
                 StatusLabel.Text = "✅ Found " .. #items .. " results"
             else
-                StatusLabel.Text = "⚠️ No results or invalid response"
-                print("JSON Decode failed or empty data")
+                StatusLabel.Text = "⚠️ No results or invalid JSON"
+                if not pok then
+                    print("JSON Error: " .. tostring(dec))
+                end
             end
         else
-            StatusLabel.Text = "❌ HTTP Error (API mungkin diblokir)"
-            print("HttpGet failed:", res)
+            StatusLabel.Text = "❌ HTTP Error - Coba pakai roproxy"
+            print("HttpGet failed: " .. tostring(res))
         end
     end)
 end
