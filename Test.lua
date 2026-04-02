@@ -338,13 +338,13 @@ local function loadItems(keyword)
             Plugins = "38"
         }
         
-        local category = catMap[activeTab] or "10"
+        local category = catMap[activeTab] or "13"
         local keywordEncoded = HttpService:UrlEncode(keyword or "")
         
         -- Coba 2 endpoint (roproxy v1 dan v2)
         local urls = {
-           -- "https://catalog.roproxy.com/v1/search/items/details?Category=" .. category .. "&Limit=30&SortType=0&Keyword=" .. keywordEncoded,
-            "https://catalog.roproxy.com/v2/search/items/details?categoryFilter=CommunityCreations&limit=30&keyword=" .. keywordEncoded
+           "https://catalog.roproxy.com/v1/search/items/details?Category=" .. category .. "&Limit=30&SortType=0&Keyword=" .. keywordEncoded,
+        --"https://catalog.roproxy.com/v2/search/items/details?categoryFilter=CommunityCreations&limit=30&keyword=" .. keywordEncoded
         }
         
         for _, url in ipairs(urls) do
