@@ -258,24 +258,67 @@ end
 
 local function loadItems(keyword)
     clearItems()
-    StatusLabel.Text = "🔄 Searching: "..(keyword ~= "" and keyword or "top items").."..."
+    StatusLabel.Text = "🔄 Searching: " .. (keyword ~= "" and keyword or "top items") .. "..."
+    
     task.spawn(function()
-        local catMap = {Models="10",Decals="13",Audio="3",Plugins="38"}
-        local url = "https://catalog.roproxy.com/v1/search/items/details?Category="..(catMap[activeTab] or "10").."&SortType=0&Limit=30&Keyword="..(keyword or "")
-print(url)
-        local ok, res = pcall(game.HttpGet, game, url)
-        if ok then
-            local pok, dec = pcall(HttpService.JSONDecode, HttpService, res)
-            if pok and dec and dec.Data and dec.Data.Items then
-                local items = dec.Data.Items
-                for i, item in ipairs(items) do createCard(item, i) end
-                ScrollFrame.CanvasSize = UDim2.new(0,0,0,math.ceil(#items/3)*156+16)
-                StatusLabel.Text = "✅ Found "..(#items).." results"
-            else
-                StatusLabel.Text = "⚠️ No results found"
-            end
-        else
+        local catMap = {
+            Models = "10",
+            Decals = "13",
+            Audio = "3",
+            Plugins = "38"
+        }
+        
+        local category = catMap[activeTab] or "10"
+        local keywordEncoded = HttpService:UrlEncode(keyword or "")
+        
+        -- Pakai roproxy + v1 (paling reliable untuk Models)
+        local url = "https://catalog.roproxy.com/v1/search/items/details"
+                 .. "?Category=" .. category
+                 .. "&Limit=30"
+                 .. "&SortType=0"
+                 .. "&Keyword=" .. keywordEncoded
+        
+        print("🔗 Fetching: " .. url)
+        
+        local ok, res = pcall(function()
+            return game:HttpGet(url, true)
+        end)
+        
+        if not ok then
             StatusLabel.Text = "❌ HTTP Error"
+            print("HttpGet Failed:", res)
+            return
+        end
+        
+        local pok, dec = pcall(HttpService.JSONDecode, HttpService, res)
+        if not pok then
+            StatusLabel.Text = "❌ JSON Decode Error"
+            print("JSON Error:", dec)
+            return
+        end
+        
+        -- <<< INI BAGIAN PENTING YANG SERING SALAH >>>
+        if dec and dec.data then
+            local items = dec.data
+            print("✅ Ditemukan " .. #items .. " items")  -- debug berapa item yang didapat
+            
+            if #items == 0 then
+                StatusLabel.Text = "⚠️ No results found"
+                return
+            end
+            
+            for i, item in ipairs(items) do
+                -- Pastikan AssetId dan Name ada
+                item.AssetId = item.id or item.Id or 0
+                item.Name = item.name or item.Name or "Unknown Item"
+                createCard(item, i)
+            end
+            
+            ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, math.ceil(#items / 3) * 156 + 16)
+            StatusLabel.Text = "✅ Found " .. #items .. " results"
+        else
+            StatusLabel.Text = "⚠️ Invalid response (no data)"
+            print("Response structure:", dec)
         end
     end)
 end
