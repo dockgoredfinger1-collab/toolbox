@@ -332,7 +332,7 @@ local function loadItems(keyword)
     
     task.spawn(function()
         local catMap = {
-            Models = "10",
+            Models = "13",
             Decals = "13",
             Audio = "3",
             Plugins = "38"
