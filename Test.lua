@@ -233,12 +233,46 @@ local function createCard(item, index)
     NameLabel.Font = Enum.Font.GothamSemibold; NameLabel.TextWrapped = true
     NameLabel.TextXAlignment = Enum.TextXAlignment.Center; NameLabel.ZIndex = 8; NameLabel.Parent = Card
 
-    local CopyBtn = Instance.new("TextButton")
-    CopyBtn.Size = UDim2.new(1,-10,0,24); CopyBtn.Position = UDim2.new(0,5,1,-28)
-    CopyBtn.BackgroundColor3 = Color3.fromRGB(70,130,255); CopyBtn.Text = "📋 Copy ID"
-    CopyBtn.TextColor3 = Color3.fromRGB(255,255,255); CopyBtn.TextSize = 11
-    CopyBtn.Font = Enum.Font.GothamBold; CopyBtn.ZIndex = 9; CopyBtn.Parent = Card
-    Instance.new("UICorner", CopyBtn).CornerRadius = UDim.new(0, 5)
+    -- Copy ID Button (tetap ada)
+local CopyBtn = Instance.new("TextButton")
+CopyBtn.Size = UDim2.new(0.48, -5, 0, 24)
+CopyBtn.Position = UDim2.new(0, 5, 1, -28)
+CopyBtn.BackgroundColor3 = Color3.fromRGB(70,130,255)
+CopyBtn.Text = "📋 Copy ID"
+CopyBtn.TextColor3 = Color3.fromRGB(255,255,255)
+CopyBtn.TextSize = 11
+CopyBtn.Font = Enum.Font.GothamBold
+CopyBtn.ZIndex = 9
+CopyBtn.Parent = Card
+Instance.new("UICorner", CopyBtn).CornerRadius = UDim.new(0, 5)
+
+-- Insert Button Baru
+local InsertBtn = Instance.new("TextButton")
+InsertBtn.Size = UDim2.new(0.48, -5, 0, 24)
+InsertBtn.Position = UDim2.new(0.52, 0, 1, -28)
+InsertBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+InsertBtn.Text = "📥 Insert"
+InsertBtn.TextColor3 = Color3.fromRGB(255,255,255)
+InsertBtn.TextSize = 11
+InsertBtn.Font = Enum.Font.GothamBold
+InsertBtn.ZIndex = 9
+InsertBtn.Parent = Card
+Instance.new("UICorner", InsertBtn).CornerRadius = UDim.new(0, 5)
+
+-- Event Copy (tetap sama seperti sebelumnya)
+CopyBtn.MouseButton1Click:Connect(function()
+    local id = tostring(item.AssetId or item.Id or 0)
+    local ok = pcall(setclipboard, id)
+    if ok then
+        showToast("✅ Copied ID: "..id, Color3.fromRGB(40,200,100))
+    end
+end)
+
+-- Event Insert Baru
+InsertBtn.MouseButton1Click:Connect(function()
+    local id = item.AssetId or item.Id or 0
+    insertAsset(id)
+end)
 
     Card.MouseEnter:Connect(function() CS.Color = Color3.fromRGB(70,130,255) end)
     Card.MouseLeave:Connect(function() CS.Color = Color3.fromRGB(50,50,65) end)
@@ -256,9 +290,43 @@ local function createCard(item, index)
     end)
 end
 
+local InsertService = game:GetService("InsertService")
+
+local function insertAsset(assetId)
+    if assetId == 0 or assetId == nil then
+        showToast("❌ Invalid Asset ID", Color3.fromRGB(200,60,60))
+        return
+    end
+    
+    local success, result = pcall(function()
+        local model = InsertService:LoadAsset(assetId)
+        if model then
+            model.Parent = workspace
+            -- Pindahkan children ke Workspace supaya tidak nested terlalu dalam
+            for _, v in ipairs(model:GetChildren()) do
+                v.Parent = workspace
+            end
+            model:Destroy()
+            showToast("✅ Inserted to Workspace! ID: " .. assetId, Color3.fromRGB(40,200,100))
+        end
+    end)
+    
+    if not success then
+        showToast("❌ Gagal Insert: " .. tostring(result), Color3.fromRGB(200,60,60))
+        print("Insert Error:", result)
+        -- Saran alternatif
+        showToast("Tips: Copy ID lalu paste manual di Studio Command Bar", Color3.fromRGB(255,180,0))
+    end
+end
+
 local function loadItems(keyword)
     clearItems()
     StatusLabel.Text = "🔄 Searching: " .. (keyword ~= "" and keyword or "top items") .. "..."
+    
+    -- Debug langsung di luar task dulu
+    print("=== LOAD ITEMS DIPANGGIL ===")
+    print("Active Tab:", activeTab)
+    print("Keyword:", keyword or "kosong")
     
     task.spawn(function()
         local catMap = {
@@ -271,26 +339,45 @@ local function loadItems(keyword)
         local category = catMap[activeTab] or "10"
         local keywordEncoded = HttpService:UrlEncode(keyword or "")
         
-        -- Gunakan v1 dulu (lebih kompatibel untuk search keyword)
-        local baseUrl = "https://catalog.roblox.com/v1/search/items/details"
-        local url = baseUrl .. "?Category=" .. category 
-                    .. "&Limit=30" 
-                    .. "&SortType=0"
-                    .. "&Keyword=" .. keywordEncoded
+        -- Coba 2 endpoint (roproxy v1 dan v2)
+        local urls = {
+            "https://catalog.roproxy.com/v1/search/items/details?Category=" .. category .. "&Limit=30&SortType=0&Keyword=" .. keywordEncoded,
+            "https://catalog.roproxy.com/v2/search/items/details?categoryFilter=CommunityCreations&limit=30&keyword=" .. keywordEncoded
+        }
         
-        -- Kalau sering error HTTP, coba pakai roproxy (uncomment salah satu)
-        -- local url = "https://catalog.roproxy.com/v1/search/items/details?Category=" .. category .. "&Limit=30&SortType=0&Keyword=" .. keywordEncoded
-        
-        print("Fetching URL: " .. url)  -- ini buat debug
-        
-        local ok, res = pcall(function()
-            return game:HttpGet(url, true)  -- true = no cache
-        end)
-        
-        if ok then
+        for _, url in ipairs(urls) do
+            print("🔗 Mencoba URL: " .. url)
+            
+            local ok, res = pcall(function()
+                return game:HttpGet(url, true)
+            end)
+            
+            if not ok then
+                print("❌ HttpGet gagal:", res)
+                continue
+            end
+            
+            print("✅ HttpGet berhasil, panjang response:", #res)
+            
             local pok, dec = pcall(HttpService.JSONDecode, HttpService, res)
-            if pok and dec and dec.data then
-                local items = dec.data
+            if not pok then
+                print("❌ JSON Decode gagal:", dec)
+                continue
+            end
+            
+            -- Debug struktur response
+            print("Response keys:", dec and typeof(dec) == "table" and "ada" or "kosong")
+            if dec.data then
+                print("Ditemukan dec.data dengan jumlah:", #dec.data)
+            elseif dec.Data then
+                print("Ditemukan dec.Data dengan jumlah:", #dec.Data)
+            end
+            
+            local items = dec.data or (dec.Data and dec.Data.Items) or dec.Data or {}
+            
+            if #items > 0 then
+                print("✅ Berhasil! Memproses " .. #items .. " items")
+                
                 for i, item in ipairs(items) do
                     item.AssetId = item.id or item.Id or 0
                     item.Name = item.name or item.Name or "Unknown"
@@ -299,19 +386,17 @@ local function loadItems(keyword)
                 
                 ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, math.ceil(#items / 3) * 156 + 16)
                 StatusLabel.Text = "✅ Found " .. #items .. " results"
+                return  -- keluar kalau sudah berhasil
             else
-                StatusLabel.Text = "⚠️ No results or invalid JSON"
-                if not pok then
-                    print("JSON Error: " .. tostring(dec))
-                end
+                print("⚠️ Items kosong di endpoint ini")
             end
-        else
-            StatusLabel.Text = "❌ HTTP Error - Coba pakai roproxy"
-            print("HttpGet failed: " .. tostring(res))
         end
+        
+        -- Kalau semua gagal
+        StatusLabel.Text = "❌ Tidak ada hasil dari semua endpoint"
+        print("Semua endpoint gagal atau tidak ada data")
     end)
 end
-
 -- === TABS ===
 for tabName, btn in pairs(tabButtons) do
     btn.MouseButton1Click:Connect(function()
