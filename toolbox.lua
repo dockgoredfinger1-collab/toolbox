@@ -260,6 +260,11 @@ local function loadItems(keyword)
     clearItems()
     StatusLabel.Text = "🔄 Searching: " .. (keyword ~= "" and keyword or "top items") .. "..."
     
+    -- Debug langsung di luar task dulu
+    print("=== LOAD ITEMS DIPANGGIL ===")
+    print("Active Tab:", activeTab)
+    print("Keyword:", keyword or "kosong")
+    
     task.spawn(function()
         local catMap = {
             Models = "10",
@@ -271,58 +276,64 @@ local function loadItems(keyword)
         local category = catMap[activeTab] or "10"
         local keywordEncoded = HttpService:UrlEncode(keyword or "")
         
-        -- Pakai roproxy + v1 (paling reliable untuk Models)
-        local url = "https://catalog.roproxy.com/v1/search/items/details"
-                 .. "?Category=" .. category
-                 .. "&Limit=30"
-                 .. "&SortType=0"
-                 .. "&Keyword=" .. keywordEncoded
+        -- Coba 2 endpoint (roproxy v1 dan v2)
+        local urls = {
+            "https://catalog.roproxy.com/v1/search/items/details?Category=" .. category .. "&Limit=30&SortType=0&Keyword=" .. keywordEncoded,
+            "https://catalog.roproxy.com/v2/search/items/details?categoryFilter=CommunityCreations&limit=30&keyword=" .. keywordEncoded
+        }
         
-        print("🔗 Fetching: " .. url)
-        
-        local ok, res = pcall(function()
-            return game:HttpGet(url, true)
-        end)
-        
-        if not ok then
-            StatusLabel.Text = "❌ HTTP Error"
-            print("HttpGet Failed:", res)
-            return
-        end
-        
-        local pok, dec = pcall(HttpService.JSONDecode, HttpService, res)
-        if not pok then
-            StatusLabel.Text = "❌ JSON Decode Error"
-            print("JSON Error:", dec)
-            return
-        end
-        
-        -- <<< INI BAGIAN PENTING YANG SERING SALAH >>>
-        if dec and dec.data then
-            local items = dec.data
-            print("✅ Ditemukan " .. #items .. " items")  -- debug berapa item yang didapat
+        for _, url in ipairs(urls) do
+            print("🔗 Mencoba URL: " .. url)
             
-            if #items == 0 then
-                StatusLabel.Text = "⚠️ No results found"
-                return
+            local ok, res = pcall(function()
+                return game:HttpGet(url, true)
+            end)
+            
+            if not ok then
+                print("❌ HttpGet gagal:", res)
+                continue
             end
             
-            for i, item in ipairs(items) do
-                -- Pastikan AssetId dan Name ada
-                item.AssetId = item.id or item.Id or 0
-                item.Name = item.name or item.Name or "Unknown Item"
-                createCard(item, i)
+            print("✅ HttpGet berhasil, panjang response:", #res)
+            
+            local pok, dec = pcall(HttpService.JSONDecode, HttpService, res)
+            if not pok then
+                print("❌ JSON Decode gagal:", dec)
+                continue
             end
             
-            ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, math.ceil(#items / 3) * 156 + 16)
-            StatusLabel.Text = "✅ Found " .. #items .. " results"
-        else
-            StatusLabel.Text = "⚠️ Invalid response (no data)"
-            print("Response structure:", dec)
+            -- Debug struktur response
+            print("Response keys:", dec and typeof(dec) == "table" and "ada" or "kosong")
+            if dec.data then
+                print("Ditemukan dec.data dengan jumlah:", #dec.data)
+            elseif dec.Data then
+                print("Ditemukan dec.Data dengan jumlah:", #dec.Data)
+            end
+            
+            local items = dec.data or (dec.Data and dec.Data.Items) or dec.Data or {}
+            
+            if #items > 0 then
+                print("✅ Berhasil! Memproses " .. #items .. " items")
+                
+                for i, item in ipairs(items) do
+                    item.AssetId = item.id or item.Id or 0
+                    item.Name = item.name or item.Name or "Unknown"
+                    createCard(item, i)
+                end
+                
+                ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, math.ceil(#items / 3) * 156 + 16)
+                StatusLabel.Text = "✅ Found " .. #items .. " results"
+                return  -- keluar kalau sudah berhasil
+            else
+                print("⚠️ Items kosong di endpoint ini")
+            end
         end
+        
+        -- Kalau semua gagal
+        StatusLabel.Text = "❌ Tidak ada hasil dari semua endpoint"
+        print("Semua endpoint gagal atau tidak ada data")
     end)
 end
-
 -- === TABS ===
 for tabName, btn in pairs(tabButtons) do
     btn.MouseButton1Click:Connect(function()
