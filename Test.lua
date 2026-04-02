@@ -296,43 +296,27 @@ local InsertService = game:GetService("InsertService")
 local function insertAsset(assetId)
     assetId = tonumber(assetId)
     if not assetId or assetId <= 0 then
-        showToast("❌ Asset ID tidak valid", Color3.fromRGB(200, 60, 60))
+        showToast("❌ ID tidak valid", Color3.fromRGB(200,60,60))
         return
     end
 
-    showToast("🔄 Mencoba insert ID: " .. assetId, Color3.fromRGB(255, 180, 0))
+    showToast("🔄 Mencoba insert ID: " .. assetId, Color3.fromRGB(255,180,0))
 
-    local success, loadedModel = pcall(function()
-        return InsertService:LoadAsset(assetId)
+    local success, err = pcall(function()
+        local model = InsertService:LoadAsset(assetId)
+        if model then
+            model.Parent = workspace
+            showToast("✅ Insert selesai! ID: " .. assetId, Color3.fromRGB(40,200,100))
+        end
     end)
 
     if not success then
-        print("LoadAsset Error:", loadedModel)
-        showToast("❌ LoadAsset gagal\n" .. tostring(loadedModel):sub(1,120), Color3.fromRGB(200,60,60))
+        print("Insert Error:", err)
+        showToast("❌ Gagal Insert\n" .. tostring(err):sub(1, 100), Color3.fromRGB(200,60,60))
+        
         task.delay(2, function()
-            showToast("Tips: Model harus ada di inventory kamu atau milik Roblox", Color3.fromRGB(100,180,255))
+            showToast("Tips: Model harus ada di inventory kamu sendiri\nCara terbaik: Copy ID → buka Roblox Studio → drag manual", Color3.fromRGB(100,180,255))
         end)
-        return
-    end
-
-    if not loadedModel then
-        showToast("❌ LoadAsset mengembalikan nil (tidak diizinkan)", Color3.fromRGB(200,60,60))
-        return
-    end
-
-    -- Insert semua children ke Workspace
-    local count = 0
-    for _, obj in ipairs(loadedModel:GetChildren()) do
-        obj.Parent = workspace
-        count = count + 1
-    end
-
-    loadedModel:Destroy()
-
-    if count > 0 then
-        showToast("✅ Berhasil insert " .. count .. " object(s)!\nID: " .. assetId, Color3.fromRGB(40,200,100))
-    else
-        showToast("⚠️ Asset loaded tapi kosong", Color3.fromRGB(255,180,0))
     end
 end
 
