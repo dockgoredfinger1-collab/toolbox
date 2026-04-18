@@ -496,6 +496,13 @@ local function loadItems(keyword)
         ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, math.ceil(#items / 3) * 156 + 16)
         StatusLabel.Text = "✅ Found " .. #items .. " results for: " .. kw
         print("✅ Loaded " .. #items .. " items")
+        -- Tambah ini setelah JSONDecode berhasil
+print("RAW RESPONSE:", res)
+print("ITEMS COUNT:", #items)
+if items[1] then
+    print("ITEM 1:", items[1].id, items[1].name, items[1].thumbnail)
+end
+            
     end)
 end
 
