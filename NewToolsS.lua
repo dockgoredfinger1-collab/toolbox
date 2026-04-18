@@ -372,7 +372,8 @@ local function createCard(item, index)
     Thumb.Position = UDim2.new(0, 5, 0, 5)
     Thumb.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
     -- Pakai thumbnail dari proxy kalau ada, fallback ke Roblox URL
-    Thumb.Image = item.thumbnail or ("https://www.roblox.com/asset-thumbnail/image?assetId=" .. assetId .. "&width=150&height=150&format=png")
+    -- Thumb.Image = item.thumbnail or ("https://www.roblox.com/asset-thumbnail/image?assetId=" .. assetId .. "&width=150&height=150&format=png")
+    Thumb.Image = "rbxthumb://type=Asset&id=" .. assetId .. "&w=150&h=150"
     Thumb.ScaleType = Enum.ScaleType.Fit
     Thumb.ZIndex = 8
     Thumb.Parent = Card
