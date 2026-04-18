@@ -17,7 +17,7 @@ end
 
 local isOpen = false
 local activeTab = "Models"
-local PROXY_URL = "https://roblox-three-mauve.vercel.app/api/search"
+local PROXY_URL = "https://roblox-three-mauve.vercel.app/api/test"
 
 -- ═══════════════════════════════════
 --           SCREEN GUI
