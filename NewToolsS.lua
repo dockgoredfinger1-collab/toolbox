@@ -309,14 +309,35 @@ local function insertAsset(assetId)
         return
     end
     showToast("🔄 Inserting ID: " .. assetId, Color3.fromRGB(255, 180, 0))
-    local success, err = pcall(function()
+    
+    -- Coba GetObjects dulu (works di Delta)
+    local success, result = pcall(function()
+        local objects = game:GetObjects("rbxassetid://" .. assetId)
+        if objects and #objects > 0 then
+            for _, obj in ipairs(objects) do
+                obj.Parent = workspace
+            end
+            return true
+        end
+        return false
+    end)
+    
+    if success and result then
+        showToast("✅ Inserted! ID: " .. assetId, Color3.fromRGB(40, 200, 100))
+        return
+    end
+    
+    -- Fallback ke InsertService kalau GetObjects gagal
+    local ok, err = pcall(function()
         local model = InsertService:LoadAsset(assetId)
         if model then
             model.Parent = workspace
-            showToast("✅ Inserted! ID: " .. assetId, Color3.fromRGB(40, 200, 100))
         end
     end)
-    if not success then
+    
+    if ok then
+        showToast("✅ Inserted! ID: " .. assetId, Color3.fromRGB(40, 200, 100))
+    else
         print("Insert Error:", err)
         showToast("❌ Gagal insert — lihat console", Color3.fromRGB(200, 60, 60))
     end
